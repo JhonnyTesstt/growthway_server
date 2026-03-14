@@ -1,54 +1,45 @@
 import { prisma } from "@/lib/prisma";
+import { ClassStatus } from "@prisma-client";
 import { FastifyInstance } from "fastify";
-import { z } from "zod";
 
 export async function dashboardRoutes(app: FastifyInstance) {
-    app.addHook("preHandler", app.verifyAuth);
+  app.addHook("preHandler", app.verifyAuth);
 
-    app.get("/", async (request, reply) => {
-        const paramsSchema = z.object({
-            user_id: z.string(),
-        });
+  app.get("/", async (request, reply) => {
+    try {
+      const [totalStudents, completedClasses, pendingClasses] =
+        await Promise.all([
+          prisma.student.count({
+            where: {
+              classes: {
+                some: {
+                  user_id: request.user.sub,
+                },
+              },
+            },
+          }),
+          prisma.class.count({
+            where: {
+              user_id: request.user.sub,
+              status: ClassStatus.COMPLETED,
+            },
+          }),
+          prisma.class.count({
+            where: {
+              user_id: request.user.sub,
+              status: ClassStatus.PENDING,
+            },
+          }),
+        ]);
 
-        try {
-            const { user_id } = paramsSchema.parse(request.params);
-
-            const [totalStudents, completedClasses, pendingClasses] =
-                await Promise.all([
-                    prisma.student.count({
-                        where: {
-                            classes: {
-                                some: {
-                                    user_id: user_id,
-                                },
-                            },
-                        },
-                    }),
-                    prisma.class.count({
-                        where: {
-                            user_id: user_id,
-                            status: "COMPLETED",
-                        },
-                    }),
-                    prisma.class.count({
-                        where: {
-                            user_id: user_id,
-                            status: "PENDING",
-                        },
-                    }),
-                ]);
-
-            return reply.status(200).send({
-                total_students: totalStudents,
-                completed_classes: completedClasses,
-                pending_classes: pendingClasses,
-            });
-        } catch (error) {
-            console.error("Error fetching dashboard:", error);
-
-            return reply.status(500).send({
-                message: "Erro ao carregar dashboard",
-            });
-        }
-    });
+      return reply.status(200).send({
+        total_students: totalStudents,
+        completed_classes: completedClasses,
+        pending_classes: pendingClasses,
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard:", error);
+      return reply.status(500).send({ message: "Erro ao carregar dashboard" });
+    }
+  });
 }
