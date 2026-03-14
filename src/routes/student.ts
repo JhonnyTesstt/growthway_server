@@ -47,6 +47,7 @@ export async function studentRoutes(app: FastifyInstance) {
               url: true,
               notes: true,
               created_at: true,
+              goal_id: true,
               goal: {
                 select: {
                   id: true,
@@ -63,7 +64,47 @@ export async function studentRoutes(app: FastifyInstance) {
       if (!student)
         return reply.status(404).send({ message: "Aluno não encontrado" });
 
-      return reply.status(200).send(student);
+      const classesGroupedByGoal = student.classes.reduce(
+        (acc, classItem) => {
+          if (classItem.goal) {
+            const existingGoal = acc.with_goal.find(
+              (g) => g.goal.id === classItem.goal!.id,
+            );
+
+            if (existingGoal) {
+              existingGoal.classes.push(classItem);
+            } else {
+              acc.with_goal.push({
+                goal: classItem.goal,
+                classes: [classItem],
+              });
+            }
+          } else {
+            acc.without_goal.push(classItem);
+          }
+
+          return acc;
+        },
+        {
+          with_goal: [] as Array<{
+            goal: {
+              id: string;
+              title: string;
+              description: string | null;
+              status: string;
+            };
+            classes: typeof student.classes;
+          }>,
+          without_goal: [] as typeof student.classes,
+        },
+      );
+
+      const { classes, ...studentData } = student;
+
+      return reply.status(200).send({
+        ...studentData,
+        classes_grouped: classesGroupedByGoal,
+      });
     } catch (error) {
       console.error("Error fetching student:", error);
       return reply.status(500).send({ message: "Erro ao buscar aluno" });
