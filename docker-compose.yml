@@ -1,12 +1,12 @@
 version: "3.8"
 services:
   postgres:
-    image: postgres:latest
-    container_name: template
+    image: postgres:17
+    container_name: maestro
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: template
+      POSTGRES_DB: maestro
     ports:
       - "5432:5432"
     volumes:

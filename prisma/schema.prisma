@@ -7,7 +7,7 @@ datasource db {
   provider = "postgresql"
 }
 
-model Teacher {
+model User {
   id         String   @id @default(uuid())
   name       String
   email      String   @unique
@@ -15,37 +15,38 @@ model Teacher {
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt
 
-  students    Student[]
+  students Student[]
 
-  @@map("teachers")
+  @@map("users")
 }
 
 model Student {
-  id           String        @id @default(uuid())
-  name         String
-  email        String?
-  phone        String?
-  status       StudentStatus @default(ACTIVE)
-  created_at   DateTime      @default(now())
-  updated_at   DateTime      @default(now()) @updatedAt
+  id         String        @id @default(uuid())
+  name       String
+  email      String?
+  document   String?
+  phone      String?
+  status     StudentStatus @default(ACTIVE)
+  created_at DateTime      @default(now())
+  updated_at DateTime      @default(now()) @updatedAt
 
-  teacher_id String
-  teacher    Teacher @relation(fields: [teacher_id], references: [id])
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id])
 
-  goals        Goal[]
-  lessons      Lesson[]
-  subscriptions Subscription[]
+  goals    Goal[]
+  lessons  Lesson[]
+  invoices Invoice[]
 
   @@map("students")
 }
 
 model Goal {
   id          String     @id @default(uuid())
-  title       String                       
+  title       String
   description String?
   status      GoalStatus @default(IN_PROGRESS)
-  target_date DateTime?  @db.Date
-  started_at  DateTime   @default(now()) @db.Date
+  start_at    DateTime   @default(now()) @db.Date
+  end_at      DateTime?  @db.Date
   created_at  DateTime   @default(now())
   updated_at  DateTime   @default(now()) @updatedAt
 
@@ -56,14 +57,14 @@ model Goal {
 }
 
 model Lesson {
-  id          String   @id @default(uuid())
-  date        DateTime @default(now()) @db.Date
-  title       String?                 
-  content     String              
-  duration    Int?                   
-  notes       String?                  
-  created_at  DateTime @default(now())
-  updated_at  DateTime @default(now()) @updatedAt
+  id         String   @id @default(uuid())
+  date       DateTime @default(now()) @db.Date
+  title      String?
+  content    String
+  duration   Int?
+  notes      String?
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
 
   student_id String
   student    Student @relation(fields: [student_id], references: [id])
@@ -71,45 +72,27 @@ model Lesson {
   @@map("lessons")
 }
 
-model Subscription {
-  id             String             @id @default(uuid())
-  amount         Float
-  billing_day    Int           
-  payment_method PaymentMethod
-  status         SubscriptionStatus @default(ACTIVE)
-  created_at     DateTime           @default(now())
-  updated_at     DateTime           @default(now()) @updatedAt
-
-  student_id String
-  student    Student @relation(fields: [student_id], references: [id])
-
-  invoices Invoice[]
-
-  @@map("subscriptions")
-}
-
 model Invoice {
   id             String        @id @default(uuid())
   amount         Float
-  due_date       DateTime      @db.Date
   payment_method PaymentMethod
   status         InvoiceStatus @default(PENDING)
   notes          String?
   created_at     DateTime      @default(now())
   updated_at     DateTime      @default(now()) @updatedAt
 
-  subscription_id String
-  subscription    Subscription @relation(fields: [subscription_id], references: [id])
+  student_id String
+  student    Student @relation(fields: [student_id], references: [id])
 
   @@map("invoices")
 }
 
-// ENUMS
+// enums
 
 enum StudentStatus {
   ACTIVE
   INACTIVE
-  PAUSED     
+  PAUSED
 }
 
 enum GoalStatus {
@@ -119,10 +102,10 @@ enum GoalStatus {
 }
 
 enum TaskStatus {
-  PENDING    
-  DONE        
-  NOT_DONE    
-  PARTIAL     
+  PENDING
+  DONE
+  NOT_DONE
+  PARTIAL
 }
 
 enum SubscriptionStatus {
