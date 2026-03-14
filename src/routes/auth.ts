@@ -6,7 +6,7 @@ import { prisma } from "../lib/prisma";
 export async function authRoutes(app: FastifyInstance) {
   app.post("/signin", async (request, reply) => {
     const bodySchema = z.object({
-      email: z.string().email(),
+      email: z.email(),
       password: z.string(),
     });
 
@@ -35,7 +35,7 @@ export async function authRoutes(app: FastifyInstance) {
         {
           sub: user.id,
           expiresIn: "1 day",
-        }
+        },
       );
 
       return {
