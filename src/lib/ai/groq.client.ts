@@ -36,17 +36,27 @@ export class GroqClient {
 
             return response.data.choices[0].message.content
 
-        } catch (error: any) {
+        }
+        catch (error: unknown) {
 
-            if (error.response) {
-                console.error("Groq error:", error.response.data)
+            if (axios.isAxiosError(error)) {
+
+                const status = error.response?.status
+                const data = error.response?.data
+
+                console.error("Groq API error", {
+                    status,
+                    data
+                })
+
                 throw new Error(
-                    `Groq API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`
+                    `Groq request failed${status ? ` (status ${status})` : ""}`
                 )
             }
 
-            console.error("Connection error:", error.message)
-            throw new Error(`Connection error with Groq: ${error.message}`)
+            console.error("Unexpected error calling Groq", error)
+
+            throw new Error("Unexpected error calling Groq API")
         }
     }
 }

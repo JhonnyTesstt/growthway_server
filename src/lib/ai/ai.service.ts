@@ -1,4 +1,4 @@
-import { GroqClient } from "./grok.client"
+import { GroqClient } from "./groq.client"
 import { env } from "../../env"
 
 export class AIService {
