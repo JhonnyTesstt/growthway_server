@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Teacher {
+  id         String   @id @default(uuid())
+  name       String
+  email      String   @unique
+  password   String
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+
+  students    Student[]
+
+  @@map("teachers")
+}
+
+model Student {
+  id           String        @id @default(uuid())
+  name         String
+  email        String?
+  phone        String?
+  status       StudentStatus @default(ACTIVE)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @default(now()) @updatedAt
+
+  teacher_id String
+  teacher    Teacher @relation(fields: [teacher_id], references: [id])
+
+  goals        Goal[]
+  lessons      Lesson[]
+  subscriptions Subscription[]
+
+  @@map("students")
+}
+
+model Goal {
+  id          String     @id @default(uuid())
+  title       String                       
+  description String?
+  status      GoalStatus @default(IN_PROGRESS)
+  target_date DateTime?  @db.Date
+  started_at  DateTime   @default(now()) @db.Date
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @default(now()) @updatedAt
+
+  student_id String
+  student    Student @relation(fields: [student_id], references: [id])
+
+  @@map("goals")
+}
+
+model Lesson {
+  id          String   @id @default(uuid())
+  date        DateTime @default(now()) @db.Date
+  title       String?                 
+  content     String              
+  duration    Int?                   
+  notes       String?                  
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+
+  student_id String
+  student    Student @relation(fields: [student_id], references: [id])
+
+  @@map("lessons")
+}
+
+model Subscription {
+  id             String             @id @default(uuid())
+  amount         Float
+  billing_day    Int           
+  payment_method PaymentMethod
+  status         SubscriptionStatus @default(ACTIVE)
+  created_at     DateTime           @default(now())
+  updated_at     DateTime           @default(now()) @updatedAt
+
+  student_id String
+  student    Student @relation(fields: [student_id], references: [id])
+
+  invoices Invoice[]
+
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  amount         Float
+  due_date       DateTime      @db.Date
+  payment_method PaymentMethod
+  status         InvoiceStatus @default(PENDING)
+  notes          String?
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @default(now()) @updatedAt
+
+  subscription_id String
+  subscription    Subscription @relation(fields: [subscription_id], references: [id])
+
+  @@map("invoices")
+}
+
+// ENUMS
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  PAUSED     
+}
+
+enum GoalStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskStatus {
+  PENDING    
+  DONE        
+  NOT_DONE    
+  PARTIAL     
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  PIX
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  BANK_TRANSFER
+}
