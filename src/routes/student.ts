@@ -44,16 +44,16 @@ export async function studentRoutes(app: FastifyInstance) {
               title: true,
               description: true,
               status: true,
-              url: true,
               notes: true,
-              created_at: true,
-              goal_id: true,
-              goal: {
+              url: true,
+              tasks: {
+                orderBy: { created_at: "desc" },
                 select: {
                   id: true,
                   title: true,
                   description: true,
                   status: true,
+                  due_date: true,
                 },
               },
             },
