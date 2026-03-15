@@ -1,22 +1,18 @@
+import { GroqClient } from "@/client/groq.client";
+import { env } from "@/env";
 import { prisma } from "@/lib/prisma";
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { AIService } from "../lib/ai/ai.service";
 
-const lessonSchema = z.object({
-  title: z.string(),
-  description: z.string(),
-});
-
-const aiPlanResponseSchema = z.array(lessonSchema).length(5);
-
-function parseJsonFromAi(raw: string): z.infer<typeof aiPlanResponseSchema> {
+function parseJsonFromAi(
+  raw: string,
+): { title: string; description: string }[] {
   const trimmed = raw
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```$/i, "");
   const parsed = JSON.parse(trimmed) as unknown;
-  return aiPlanResponseSchema.parse(parsed);
+  return parsed as { title: string; description: string }[];
 }
 
 export async function aiRoutes(app: FastifyInstance) {
@@ -38,9 +34,9 @@ export async function aiRoutes(app: FastifyInstance) {
     const student = await prisma.student.findFirst({
       where: { id: student_id, user_id: request.user.sub },
     });
-    if (!student) {
+
+    if (!student)
       return reply.status(404).send({ message: "Aluno não encontrado" });
-    }
 
     const goal = await prisma.goal.create({
       data: {
@@ -49,7 +45,7 @@ export async function aiRoutes(app: FastifyInstance) {
       },
     });
 
-    const aiService = new AIService();
+    const groq = new GroqClient(env.GROQ_API_KEY, env.GROQ_BASE_URL);
     const prompt = `Você é um planejador de aulas. Com base no objetivo e na abordagem abaixo, crie exatamente 5 aulas em sequência para cumprir esse objetivo.
 
 Objetivo: ${title}
@@ -60,11 +56,9 @@ Responda APENAS com um JSON válido, sem texto antes ou depois, no formato:
 
 São exatamente 5 objetos no array, cada um com "title" e "description" em português.`;
 
-    const rawResponse = await aiService.generateText(prompt, {
-      maxTokens: 1500,
-    });
+    const rawResponse = await groq.generate(prompt, 1000);
+    let lessons: { title: string; description: string }[];
 
-    let lessons: z.infer<typeof aiPlanResponseSchema>;
     try {
       lessons = parseJsonFromAi(rawResponse);
     } catch {
